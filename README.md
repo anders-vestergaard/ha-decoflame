@@ -43,6 +43,12 @@ bluetooth_proxy:
   active: true
 ```
 
+## Roadmap
+
+- Fuel sensor
+- Timer commands
+- Model information
+
 ## License
 
 MIT

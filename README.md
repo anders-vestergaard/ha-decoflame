@@ -4,39 +4,39 @@ Home Assistant custom integration for Decoflame bio-fireplaces via Bluetooth Low
 
 ## Features
 
-- **Switch** — tænd/sluk pejsen
-- **Select** — vælg flammeniveau (1–5 + ECO)
-- **Binary sensor** — forbindelsesstatus
+- **Switch** — turn the fireplace on/off
+- **Select** — set flame level (1–5 + ECO)
+- **Binary sensor** — connection status
 
 ## Requirements
 
-- Home Assistant med Bluetooth-understøttelse
-- ESPHome BLE proxy (anbefalet) eller direkte Bluetooth-adapter tæt på pejsen
-- Decoflame pejs med BLE-modul
+- Home Assistant with Bluetooth support
+- ESPHome BLE proxy (recommended) or a Bluetooth adapter close to the fireplace
+- Decoflame fireplace with BLE module
 
 ## Installation
 
-### HACS (anbefalet)
+### HACS (recommended)
 
-1. Tilføj dette repository som custom repository i HACS
-2. Installer "Decoflame"
-3. Genstart Home Assistant
+1. Add this repository as a custom repository in HACS
+2. Install "Decoflame"
+3. Restart Home Assistant
 
-### Manuelt
+### Manual
 
-1. Kopiér `custom_components/decoflame/` til din HA's `custom_components/`-mappe
-2. Genstart Home Assistant
+1. Copy `custom_components/decoflame/` to your HA `custom_components/` directory
+2. Restart Home Assistant
 
 ## Setup
 
-1. Gå til **Indstillinger → Enheder og tjenester → Tilføj integration**
-2. Søg efter "Decoflame"
-3. Integrationen finder automatisk pejsen via BLE — eller indtast MAC-adressen manuelt
-4. GATT-karakteristikker opdages automatisk ved pairing
+1. Go to **Settings → Devices & Services → Add Integration**
+2. Search for "Decoflame"
+3. The integration will automatically discover the fireplace via BLE — or enter the MAC address manually
+4. GATT characteristics are discovered automatically during pairing
 
 ## BLE Proxy (ESPHome)
 
-Minimal ESPHome-konfiguration:
+Minimal ESPHome configuration:
 
 ```yaml
 bluetooth_proxy:

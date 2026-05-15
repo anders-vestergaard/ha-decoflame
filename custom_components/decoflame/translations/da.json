@@ -1,0 +1,37 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Vælg Decoflame-enhed",
+        "description": "Fandt {count} Decoflame-enhed(er) i nærheden.",
+        "data": {
+          "address": "Enhed"}},
+      "manual": {
+        "title": "Manuel opsætning",
+        "description": "Ingen Decoflame-enheder fundet automatisk. Indtast MAC-adressen manuelt.",
+        "data": {
+          "address": "Bluetooth MAC-adresse (XX:XX:XX:XX:XX:XX)",
+          "name": "Enhedsnavn"}}},
+    "error": {
+      "cannot_connect": "Kunne ikke oprette forbindelse til enheden. Kontrollér at pejsen er tændt og inden for rækkevidde.",
+      "invalid_mac": "Ugyldig MAC-adresse. Brug formatet XX:XX:XX:XX:XX:XX."},
+    "abort": {
+      "already_configured": "Enheden er allerede konfigureret.",
+      "not_supported": "Denne enhed understøttes ikke."}},
+  "entity": {
+    "switch": {
+      "fireplace": {
+        "name": "Pejs"}},
+    "select": {
+      "flame_level": {
+        "name": "Flammeniveau",
+        "state": {
+          "ECO": "ECO",
+          "1": "1",
+          "2": "2",
+          "3": "3",
+          "4": "4",
+          "5": "5"}}},
+    "binary_sensor": {
+      "connected": {
+        "name": "Forbundet"}}}}

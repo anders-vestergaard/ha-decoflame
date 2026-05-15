@@ -1,0 +1,13 @@
+{
+  "domain": "decoflame",
+  "name": "Decoflame",
+  "version": "1.0.0",
+  "config_flow": true,
+  "documentation": "https://github.com/anders-vestergaard/ha-decoflame",
+  "issue_tracker": "https://github.com/anders-vestergaard/ha-decoflame/issues",
+  "requirements": ["bleak>=0.22.0",
+                   "bleak-retry-connector>=3.0.0"],
+  "bluetooth": [{"connectable": true}],
+  "dependencies": ["bluetooth"],
+  "codeowners": ["@anders-vestergaard"],
+  "iot_class": "local_polling"}

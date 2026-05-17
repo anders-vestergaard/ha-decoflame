@@ -24,9 +24,10 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from .const import (
     ADV_COMPANY_ID,
     ADV_FLAME_LEVEL,
-    ADV_FLAME_OFF,
+    ADV_FLAME_TURNING_OFF,
     ADV_FLAME_WARMING,
     ADV_FLAME_WARMING2,
+    ADV_STATUS_OFF,
     ADV_TIMEOUT_SECONDS,
     BLE_DELAY_AFTER_CONNECT_S,
     BLE_DELAY_AFTER_WRITE_S,
@@ -71,7 +72,6 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._flame_level: str = "1"
         self._state: str = "off"
         self._last_advertisement: datetime | None = None
-        self._last_off_adv: datetime = datetime.now()
         self._last_seen: datetime | None = None
         self._lock = asyncio.Lock()
 
@@ -111,7 +111,7 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         service_info: BluetoothServiceInfoBleak,
         change: BluetoothChange) -> None:
         mfr_data = service_info.manufacturer_data.get(ADV_COMPANY_ID)
-        if mfr_data is None or len(mfr_data) < 13:
+        if mfr_data is None or len(mfr_data) < 14:
             return
 
         _LOGGER.debug(
@@ -120,16 +120,17 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             " ".join(f"{b:02X}[{i}]" for i, b in enumerate(mfr_data)))
 
         flame_byte = mfr_data[12]
+        status_byte = mfr_data[13]
 
-        if flame_byte == ADV_FLAME_OFF:
+        if flame_byte == ADV_FLAME_TURNING_OFF:
+            self._state = "turning_off"
+            self._is_on = False
+        elif flame_byte == ADV_FLAME_WARMING and status_byte == ADV_STATUS_OFF:
             self._state = "off"
             self._is_on = False
-            self._last_off_adv = datetime.now()
         elif flame_byte in (ADV_FLAME_WARMING, ADV_FLAME_WARMING2):
-            off_age = (datetime.now() - self._last_off_adv).total_seconds()
-            if self._state != "off" or off_age > 30:
-                self._state = "warming_up"
-                self._is_on = True
+            self._state = "warming_up"
+            self._is_on = True
         elif flame_byte in ADV_FLAME_LEVEL:
             self._state = "on"
             self._is_on = True
@@ -236,14 +237,14 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         from .const import CMD_ON
         await self.send_command(CMD_ON)
         self._is_on = True
-        self._state = "on"
+        self._state = "warming_up"
         self.async_update_listeners()
 
     async def async_turn_off(self) -> None:
         from .const import CMD_OFF
         await self.send_command(CMD_OFF)
         self._is_on = False
-        self._state = "off"
+        self._state = "turning_off"
         self.async_update_listeners()
 
     async def async_set_flame_level(self, level: str) -> None:

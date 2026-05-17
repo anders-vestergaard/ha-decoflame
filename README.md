@@ -46,7 +46,7 @@ bluetooth_proxy:
   active: true
 ```
 
-The integration works exclusively via ESPHome active BLE proxy — a direct Bluetooth adapter on the HA host is not required.
+Tested with ESPHome active BLE proxy. A direct Bluetooth adapter on the HA host should also work if it can reach the fireplace.
 
 ## Roadmap
 

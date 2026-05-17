@@ -2,29 +2,29 @@
   "config": {
     "step": {
       "user": {
-        "title": "Vælg Decoflame-enhed",
-        "description": "Fandt {count} Decoflame-enhed(er) i nærheden.",
+        "title": "Select Decoflame device",
+        "description": "Found {count} Decoflame device(s) nearby.",
         "data": {
-          "address": "Enhed"}},
+          "address": "Device"}},
       "manual": {
-        "title": "Manuel opsætning",
-        "description": "Ingen Decoflame-enheder fundet automatisk. Indtast MAC-adressen manuelt.",
+        "title": "Manual setup",
+        "description": "No Decoflame devices found automatically. Enter the MAC address manually.",
         "data": {
-          "address": "Bluetooth MAC-adresse (XX:XX:XX:XX:XX:XX)",
-          "name": "Enhedsnavn"}}},
+          "address": "Bluetooth MAC address (XX:XX:XX:XX:XX:XX)",
+          "name": "Device name"}}},
     "error": {
-      "cannot_connect": "Kunne ikke oprette forbindelse til enheden. Kontrollér at pejsen er tændt og inden for rækkevidde.",
-      "invalid_mac": "Ugyldig MAC-adresse. Brug formatet XX:XX:XX:XX:XX:XX."},
+      "cannot_connect": "Could not connect to the device. Check that the fireplace is on and within range.",
+      "invalid_mac": "Invalid MAC address. Use the format XX:XX:XX:XX:XX:XX."},
     "abort": {
-      "already_configured": "Enheden er allerede konfigureret.",
-      "not_supported": "Denne enhed understøttes ikke."}},
+      "already_configured": "Device is already configured.",
+      "not_supported": "This device is not supported."}},
   "entity": {
     "switch": {
       "fireplace": {
-        "name": "Pejs"}},
+        "name": "Fireplace"}},
     "select": {
       "flame_level": {
-        "name": "Flammeniveau",
+        "name": "Flame level",
         "state": {
           "ECO": "ECO",
           "1": "1",
@@ -34,4 +34,12 @@
           "5": "5"}}},
     "binary_sensor": {
       "connected": {
-        "name": "Forbundet"}}}}
+        "name": "Connected"}},
+    "sensor": {
+      "state": {
+        "name": "State",
+        "state": {
+          "off": "Off",
+          "on": "On",
+          "warming_up": "Warming up",
+          "turning_off": "Turning off"}}}}}

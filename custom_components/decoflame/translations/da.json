@@ -34,4 +34,12 @@
           "5": "5"}}},
     "binary_sensor": {
       "connected": {
-        "name": "Forbundet"}}}}
+        "name": "Forbundet"}},
+    "sensor": {
+      "state": {
+        "name": "Status",
+        "state": {
+          "off": "Slukket",
+          "on": "Tændt",
+          "warming_up": "Varmer op",
+          "turning_off": "Slukker"}}}}}

@@ -27,7 +27,7 @@ FLAME_LEVEL_COMMANDS: dict[str, bytes] = {
 
 FLAME_LEVELS = list(FLAME_LEVEL_COMMANDS.keys())
 
-# Timing — proxy path adds WiFi latency on top of BLE; use conservative values
+# Timing
 BLE_DELAY_AFTER_CONNECT_S = 0.2
 BLE_DELAY_AFTER_WRITE_S   = 0.5
 
@@ -45,3 +45,22 @@ ECHO_TO_STATE: dict[bytes, tuple[bool, str | None]] = {
 # Connectivity ping/timeout
 PING_INTERVAL_SECONDS   = 30 * 60   # 30 minutes
 OFFLINE_TIMEOUT_SECONDS = 60 * 60   # 60 minutes without response → offline
+
+# Advertisement
+ADV_COMPANY_ID = 0x017F  # bytes: 7F 01
+
+ADV_STATUS_OFF        = 0x00
+ADV_STATUS_TURNING_OFF = 0xF8
+
+ADV_FLAME_LEVEL: dict[int, str] = {
+    0x01: "1",
+    0x02: "2",
+    0x03: "3",
+    0x04: "4",
+    0x05: "5",
+    0x06: "ECO"}
+
+ADV_FLAME_OFF    = 0x1E
+ADV_FLAME_WARMING = 0x07
+
+ADV_TIMEOUT_SECONDS = 120  # 2 minutes without advertisement → unavailable

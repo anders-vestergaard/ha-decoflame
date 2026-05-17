@@ -9,13 +9,24 @@ from typing import Any
 from bleak import BleakClient, BleakError
 from bleak_retry_connector import establish_connection
 
-from homeassistant.components.bluetooth import async_ble_device_from_address
+from homeassistant.components.bluetooth import (
+    BluetoothCallbackMatcher,
+    BluetoothChange,
+    BluetoothScanningMode,
+    BluetoothServiceInfoBleak,
+    async_ble_device_from_address,
+    async_register_callback)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME, Platform
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import (
+    ADV_COMPANY_ID,
+    ADV_FLAME_LEVEL,
+    ADV_STATUS_OFF,
+    ADV_STATUS_TURNING_OFF,
+    ADV_TIMEOUT_SECONDS,
     BLE_DELAY_AFTER_CONNECT_S,
     BLE_DELAY_AFTER_WRITE_S,
     CONF_ADDRESS,
@@ -31,7 +42,8 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS: list[Platform] = [
     Platform.SWITCH,
     Platform.SELECT,
-    Platform.BINARY_SENSOR]
+    Platform.BINARY_SENSOR,
+    Platform.SENSOR]
 
 
 class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -56,6 +68,8 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         self._is_on: bool = False
         self._flame_level: str = "1"
+        self._state: str = "off"
+        self._last_advertisement: datetime | None = None
         self._last_seen: datetime | None = None
         self._lock = asyncio.Lock()
 
@@ -72,18 +86,67 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         return self._flame_level
 
     @property
+    def state(self) -> str:
+        return self._state
+
+    @property
     def connected(self) -> bool:
+        if self._last_advertisement is not None:
+            age = (datetime.now() - self._last_advertisement).total_seconds()
+            return age < ADV_TIMEOUT_SECONDS
         if self._last_seen is None:
             return False
         age = (datetime.now() - self._last_seen).total_seconds()
         return age < OFFLINE_TIMEOUT_SECONDS
 
     # ------------------------------------------------------------------
+    # Advertisement callback
+    # ------------------------------------------------------------------
+
+    @callback
+    def handle_advertisement(
+        self,
+        service_info: BluetoothServiceInfoBleak,
+        change: BluetoothChange) -> None:
+        mfr_data = service_info.manufacturer_data.get(ADV_COMPANY_ID)
+        if mfr_data is None or len(mfr_data) < 13:
+            return
+
+        status_byte = mfr_data[3]
+        flame_byte = mfr_data[12]
+
+        if status_byte == ADV_STATUS_OFF:
+            self._state = "off"
+            self._is_on = False
+        elif status_byte == ADV_STATUS_TURNING_OFF:
+            self._state = "turning_off"
+            self._is_on = False
+        elif flame_byte == ADV_FLAME_WARMING:
+            self._state = "warming_up"
+            self._is_on = True
+        else:
+            self._state = "on"
+            self._is_on = True
+
+        if flame_byte in ADV_FLAME_LEVEL:
+            self._flame_level = ADV_FLAME_LEVEL[flame_byte]
+
+        self._last_advertisement = datetime.now()
+        self.async_update_listeners()
+
+    # ------------------------------------------------------------------
     # DataUpdateCoordinator hook — called on schedule (ping)
     # ------------------------------------------------------------------
 
     async def _async_update_data(self) -> dict[str, Any]:
-        """Read device state to keep connectivity and state fresh."""
+        """Read device state. Skip BLE connection if advertisement is recent."""
+        if (self._last_advertisement is not None and
+                (datetime.now() - self._last_advertisement).total_seconds() < ADV_TIMEOUT_SECONDS):
+            return {
+                "is_on": self._is_on,
+                "flame_level": self._flame_level,
+                "connected": self.connected}
+
         reachable = await self._read_state()
         if reachable:
             self._last_seen = datetime.now()
@@ -168,19 +231,16 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def async_turn_on(self) -> None:
         from .const import CMD_ON
         await self.send_command(CMD_ON)
-        self._is_on = True
         self.async_update_listeners()
 
     async def async_turn_off(self) -> None:
         from .const import CMD_OFF
         await self.send_command(CMD_OFF)
-        self._is_on = False
         self.async_update_listeners()
 
     async def async_set_flame_level(self, level: str) -> None:
         from .const import FLAME_LEVEL_COMMANDS
         await self.send_command(FLAME_LEVEL_COMMANDS[level])
-        self._flame_level = level
         self.async_update_listeners()
 
 
@@ -188,7 +248,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Decoflame from a config entry."""
     coordinator = DecoflameCoordinator(hass, entry)
     await coordinator.async_config_entry_first_refresh()
+
+    cancel_advertisement = async_register_callback(
+        hass,
+        coordinator.handle_advertisement,
+        BluetoothCallbackMatcher(address=coordinator.address),
+        BluetoothScanningMode.PASSIVE)
+
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
+    entry.async_on_unload(cancel_advertisement)
+
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 

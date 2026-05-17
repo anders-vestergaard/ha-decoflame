@@ -71,6 +71,7 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._flame_level: str = "1"
         self._state: str = "off"
         self._last_advertisement: datetime | None = None
+        self._last_off_adv: datetime = datetime.now()
         self._last_seen: datetime | None = None
         self._lock = asyncio.Lock()
 
@@ -118,9 +119,12 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if flame_byte == ADV_FLAME_OFF:
             self._state = "off"
             self._is_on = False
+            self._last_off_adv = datetime.now()
         elif flame_byte in (ADV_FLAME_WARMING, ADV_FLAME_WARMING2):
-            self._state = "warming_up"
-            self._is_on = True
+            off_age = (datetime.now() - self._last_off_adv).total_seconds()
+            if self._state != "off" or off_age > 30:
+                self._state = "warming_up"
+                self._is_on = True
         elif flame_byte in ADV_FLAME_LEVEL:
             self._state = "on"
             self._is_on = True

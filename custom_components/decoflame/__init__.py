@@ -31,6 +31,7 @@ from .const import (
     ADV_TIMEOUT_SECONDS,
     BLE_DELAY_AFTER_CONNECT_S,
     BLE_DELAY_AFTER_WRITE_S,
+    CMD_ON,
     CONF_ADDRESS,
     CONF_READ_CHAR_UUID,
     CONF_WRITE_CHAR_UUID,
@@ -74,6 +75,7 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._last_advertisement: datetime | None = None
         self._last_seen: datetime | None = None
         self._off_adv_count: int = 0
+        self._warmup_check_pending: bool = False
         self._lock = asyncio.Lock()
 
     # ------------------------------------------------------------------
@@ -130,16 +132,21 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         elif flame_byte == ADV_FLAME_WARMING and status_byte == ADV_STATUS_OFF:
             if self._state == "turning_off":
                 self._off_adv_count += 1
-                if self._off_adv_count >= 10:
+                if self._off_adv_count >= 3:
                     self._state = "off"
                     self._is_on = False
             else:
                 self._state = "off"
                 self._is_on = False
         elif flame_byte in (ADV_FLAME_WARMING, ADV_FLAME_WARMING2):
-            self._off_adv_count = 0
-            self._state = "warming_up"
-            self._is_on = True
+            if self._state in ("warming_up", "on"):
+                self._state = "warming_up"
+                self._is_on = True
+            else:
+                if not self._warmup_check_pending:
+                    self._warmup_check_pending = True
+                    self.hass.async_create_task(self._confirm_warmup_from_echo())
+                return
         elif flame_byte in ADV_FLAME_LEVEL:
             self._off_adv_count = 0
             self._state = "on"
@@ -205,6 +212,33 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             except (BleakError, asyncio.TimeoutError):
                 return False
 
+    async def _confirm_warmup_from_echo(self) -> None:
+        """Read echo char to confirm CMD_ON before accepting a warming_up advertisement."""
+        if not self.read_char:
+            self._warmup_check_pending = False
+            return
+        async with self._lock:
+            try:
+                ble_device = await self._get_ble_device()
+                if ble_device is None:
+                    return
+                client = await establish_connection(
+                    BleakClient, ble_device, ble_device.address)
+                async with client:
+                    echo = bytes(await client.read_gatt_char(self.read_char))
+                    if len(echo) >= 2 and bytes(echo[-2:]) == CMD_ON:
+                        _LOGGER.debug("Warmup confirmed via echo: %s", echo.hex())
+                        self._state = "warming_up"
+                        self._is_on = True
+                        self._last_advertisement = datetime.now()
+                        self.async_update_listeners()
+                    else:
+                        _LOGGER.debug("Warmup rejected via echo: %s", echo.hex() if echo else "empty")
+            except (BleakError, asyncio.TimeoutError):
+                pass
+            finally:
+                self._warmup_check_pending = False
+
     async def send_command(self, command: bytes) -> None:
         """Connect, write command, read-back verify, disconnect."""
         async with self._lock:
@@ -244,7 +278,6 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 raise UpdateFailed(f"BLE write failed: {err}") from err
 
     async def async_turn_on(self) -> None:
-        from .const import CMD_ON
         await self.send_command(CMD_ON)
         self._is_on = True
         self._state = "warming_up"

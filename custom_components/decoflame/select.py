@@ -38,7 +38,7 @@ class DecoflameSelect(CoordinatorEntity[DecoflameCoordinator], SelectEntity):
 
     @property
     def available(self) -> bool:
-        return self.coordinator.connected
+        return self.coordinator.connected and self.coordinator.state not in ("warming_up", "turning_off")
 
     async def async_select_option(self, option: str) -> None:
         await self.coordinator.async_set_flame_level(option)

@@ -76,6 +76,7 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._state: str = "off"
         self._last_advertisement: datetime | None = None
         self._last_seen: datetime | None = None
+        self._turn_off_cancel = None
         self._lock = asyncio.Lock()
 
     # ------------------------------------------------------------------
@@ -239,19 +240,37 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             except (BleakError, asyncio.TimeoutError) as err:
                 raise UpdateFailed(f"BLE write failed: {err}") from err
 
+    @callback
+    def _on_turn_off_timeout(self, _now) -> None:
+        if self._state == "turning_off":
+            _LOGGER.debug("Forcing off state after 420s timeout")
+            self._state = "off"
+            self._is_on = False
+            self.async_update_listeners()
+        self._turn_off_cancel = None
+
+    def _cancel_turn_off_timeout(self) -> None:
+        if self._turn_off_cancel is not None:
+            self._turn_off_cancel()
+            self._turn_off_cancel = None
+
     async def async_turn_on(self) -> None:
+        self._cancel_turn_off_timeout()
         await self.send_command(CMD_ON)
         self._is_on = True
         self._state = "warming_up"
         self.async_update_listeners()
 
     async def async_turn_off(self) -> None:
+        self._cancel_turn_off_timeout()
         await self.send_command(CMD_OFF)
         self._is_on = False
         self._state = "turning_off"
+        self._turn_off_cancel = self.hass.async_call_later(420, self._on_turn_off_timeout)
         self.async_update_listeners()
 
     async def async_set_flame_level(self, level: str) -> None:
+        self._cancel_turn_off_timeout()
         await self.send_command(FLAME_LEVEL_COMMANDS[level])
         self._flame_level = level
         self.async_update_listeners()

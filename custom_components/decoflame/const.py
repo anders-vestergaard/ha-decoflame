@@ -12,11 +12,6 @@ CONF_SERVICE_UUID = "service_uuid"
 CONF_WRITE_CHAR_UUID = "write_char_uuid"
 CONF_READ_CHAR_UUID = "read_char_uuid"
 
-# Known UUIDs — confirmed via PacketLogger + working ESPHome config
-KNOWN_SERVICE_UUID    = "0e6f3b07-c6fd-401b-9d25-496491dfa3d6"
-KNOWN_WRITE_CHAR_UUID = "da16b070-1fb1-11e4-8c21-0800200c9a66"
-READ_CHAR_UUID        = "e7add780-b042-4876-aae1-112855353cc1"
-
 # BLE commands (2-byte)
 CMD_ON:  bytes = bytes([0x00, 0x10])
 CMD_OFF: bytes = bytes([0x00, 0x20])

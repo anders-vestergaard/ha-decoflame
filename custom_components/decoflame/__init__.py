@@ -24,8 +24,9 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from .const import (
     ADV_COMPANY_ID,
     ADV_FLAME_LEVEL,
-    ADV_STATUS_OFF,
+    ADV_FLAME_OFF,
     ADV_FLAME_WARMING,
+    ADV_FLAME_WARMING2,
     ADV_TIMEOUT_SECONDS,
     BLE_DELAY_AFTER_CONNECT_S,
     BLE_DELAY_AFTER_WRITE_S,
@@ -109,28 +110,21 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         service_info: BluetoothServiceInfoBleak,
         change: BluetoothChange) -> None:
         mfr_data = service_info.manufacturer_data.get(ADV_COMPANY_ID)
-        if mfr_data is None or len(mfr_data) < 14:
+        if mfr_data is None or len(mfr_data) < 13:
             return
 
-        _LOGGER.debug(
-            "ADV mfr_data (%d bytes): %s",
-            len(mfr_data),
-            " ".join(f"{b:02X}[{i}]" for i, b in enumerate(mfr_data)))
-
         flame_byte = mfr_data[12]
-        status_byte = mfr_data[13]
 
-        if status_byte == ADV_STATUS_OFF:
+        if flame_byte == ADV_FLAME_OFF:
             self._state = "off"
             self._is_on = False
-        elif flame_byte == ADV_FLAME_WARMING:
+        elif flame_byte in (ADV_FLAME_WARMING, ADV_FLAME_WARMING2):
             self._state = "warming_up"
             self._is_on = True
-        else:
+        elif flame_byte in ADV_FLAME_LEVEL:
             self._state = "on"
             self._is_on = True
-            if flame_byte in ADV_FLAME_LEVEL:
-                self._flame_level = ADV_FLAME_LEVEL[flame_byte]
+            self._flame_level = ADV_FLAME_LEVEL[flame_byte]
 
         self._last_advertisement = datetime.now()
         self.async_update_listeners()

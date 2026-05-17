@@ -31,7 +31,10 @@ from .const import (
     ADV_TIMEOUT_SECONDS,
     BLE_DELAY_AFTER_CONNECT_S,
     BLE_DELAY_AFTER_WRITE_S,
+    CMD_OFF,
+    CMD_ON,
     CONF_ADDRESS,
+    FLAME_LEVEL_COMMANDS,
     CONF_READ_CHAR_UUID,
     CONF_WRITE_CHAR_UUID,
     DOMAIN,
@@ -243,14 +246,12 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.async_update_listeners()
 
     async def async_turn_off(self) -> None:
-        from .const import CMD_OFF
         await self.send_command(CMD_OFF)
         self._is_on = False
         self._state = "turning_off"
         self.async_update_listeners()
 
     async def async_set_flame_level(self, level: str) -> None:
-        from .const import FLAME_LEVEL_COMMANDS
         await self.send_command(FLAME_LEVEL_COMMANDS[level])
         self._flame_level = level
         self.async_update_listeners()

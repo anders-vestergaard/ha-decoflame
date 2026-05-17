@@ -24,7 +24,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from .const import (
     ADV_COMPANY_ID,
     ADV_FLAME_LEVEL,
-    ADV_FLAME_OFF,
+    ADV_STATUS_OFF,
     ADV_FLAME_WARMING,
     ADV_TIMEOUT_SECONDS,
     BLE_DELAY_AFTER_CONNECT_S,
@@ -109,12 +109,13 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         service_info: BluetoothServiceInfoBleak,
         change: BluetoothChange) -> None:
         mfr_data = service_info.manufacturer_data.get(ADV_COMPANY_ID)
-        if mfr_data is None or len(mfr_data) < 13:
+        if mfr_data is None or len(mfr_data) < 14:
             return
 
         flame_byte = mfr_data[12]
+        status_byte = mfr_data[13]
 
-        if flame_byte == ADV_FLAME_OFF:
+        if status_byte == ADV_STATUS_OFF:
             self._state = "off"
             self._is_on = False
         elif flame_byte == ADV_FLAME_WARMING:

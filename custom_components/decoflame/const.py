@@ -57,7 +57,7 @@ ADV_FLAME_LEVEL: dict[int, str] = {
     0x05: "5",
     0x06: "ECO"}
 
-ADV_FLAME_OFF    = 0x1E
-ADV_FLAME_WARMING = 0x07
+ADV_STATUS_OFF  = 0x1E  # mfr_data[13]: fireplace is off
+ADV_FLAME_WARMING = 0x07  # mfr_data[12]: warming up phase
 
 ADV_TIMEOUT_SECONDS = 120  # 2 minutes without advertisement → unavailable

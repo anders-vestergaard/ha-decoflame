@@ -24,8 +24,8 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from .const import (
     ADV_COMPANY_ID,
     ADV_FLAME_LEVEL,
-    ADV_STATUS_OFF,
-    ADV_STATUS_TURNING_OFF,
+    ADV_FLAME_OFF,
+    ADV_FLAME_WARMING,
     ADV_TIMEOUT_SECONDS,
     BLE_DELAY_AFTER_CONNECT_S,
     BLE_DELAY_AFTER_WRITE_S,
@@ -112,14 +112,10 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if mfr_data is None or len(mfr_data) < 13:
             return
 
-        status_byte = mfr_data[3]
         flame_byte = mfr_data[12]
 
-        if status_byte == ADV_STATUS_OFF:
+        if flame_byte == ADV_FLAME_OFF:
             self._state = "off"
-            self._is_on = False
-        elif status_byte == ADV_STATUS_TURNING_OFF:
-            self._state = "turning_off"
             self._is_on = False
         elif flame_byte == ADV_FLAME_WARMING:
             self._state = "warming_up"
@@ -127,9 +123,8 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         else:
             self._state = "on"
             self._is_on = True
-
-        if flame_byte in ADV_FLAME_LEVEL:
-            self._flame_level = ADV_FLAME_LEVEL[flame_byte]
+            if flame_byte in ADV_FLAME_LEVEL:
+                self._flame_level = ADV_FLAME_LEVEL[flame_byte]
 
         self._last_advertisement = datetime.now()
         self.async_update_listeners()
@@ -258,7 +253,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass,
         coordinator.handle_advertisement,
         BluetoothCallbackMatcher(address=coordinator.address),
-        BluetoothScanningMode.PASSIVE)
+        BluetoothScanningMode.ACTIVE)
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
     entry.async_on_unload(cancel_advertisement)

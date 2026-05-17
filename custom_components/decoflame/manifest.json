@@ -1,7 +1,7 @@
 {
   "domain": "decoflame",
   "name": "Decoflame",
-  "version": "0.2.0b2",
+  "version": "0.2.0b3",
   "config_flow": true,
   "documentation": "https://github.com/anders-vestergaard/ha-decoflame",
   "issue_tracker": "https://github.com/anders-vestergaard/ha-decoflame/issues",

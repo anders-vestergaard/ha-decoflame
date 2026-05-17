@@ -231,16 +231,21 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def async_turn_on(self) -> None:
         from .const import CMD_ON
         await self.send_command(CMD_ON)
+        self._is_on = True
+        self._state = "on"
         self.async_update_listeners()
 
     async def async_turn_off(self) -> None:
         from .const import CMD_OFF
         await self.send_command(CMD_OFF)
+        self._is_on = False
+        self._state = "off"
         self.async_update_listeners()
 
     async def async_set_flame_level(self, level: str) -> None:
         from .const import FLAME_LEVEL_COMMANDS
         await self.send_command(FLAME_LEVEL_COMMANDS[level])
+        self._flame_level = level
         self.async_update_listeners()
 
 

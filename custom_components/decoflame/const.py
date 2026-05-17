@@ -28,8 +28,8 @@ FLAME_LEVEL_COMMANDS: dict[str, bytes] = {
 FLAME_LEVELS = list(FLAME_LEVEL_COMMANDS.keys())
 
 # Timing — proxy path adds WiFi latency on top of BLE; use conservative values
-BLE_DELAY_AFTER_CONNECT_S = 0.5   # wait for MTU + proxy setup before write
-BLE_DELAY_AFTER_WRITE_S   = 1.0   # let device process before disconnect
+BLE_DELAY_AFTER_CONNECT_S = 0.2
+BLE_DELAY_AFTER_WRITE_S   = 0.5
 
 # Reverse-mapping from read-char echo (last 2 bytes) → (is_on, flame_level or None)
 ECHO_TO_STATE: dict[bytes, tuple[bool, str | None]] = {

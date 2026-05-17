@@ -5,8 +5,11 @@ Home Assistant custom integration for Decoflame bio-fireplaces via Bluetooth Low
 ## Features
 
 - **Switch** — turn the fireplace on/off
-- **Select** — set flame level (1–5 + ECO)
-- **Binary sensor** — connection status
+- **Select** — set flame level (1–5 + ECO), disabled during warm-up and shutdown
+- **Binary sensor** — connection status (unavailable after 2 minutes without advertisement)
+- **Sensor** — fireplace state: `off`, `warming_up`, `on`, `turning_off`
+
+State is driven by BLE advertisements — no persistent connection required. Falls back to GATT read if advertisements are missed.
 
 ## Requirements
 
@@ -43,11 +46,14 @@ bluetooth_proxy:
   active: true
 ```
 
+The integration works exclusively via ESPHome active BLE proxy — a direct Bluetooth adapter on the HA host is not required.
+
 ## Roadmap
 
 - Fuel sensor
 - Timer commands
 - Model information
+- Support for additional Decoflame models
 
 ## License
 

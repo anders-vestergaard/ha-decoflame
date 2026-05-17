@@ -114,6 +114,11 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if mfr_data is None or len(mfr_data) < 13:
             return
 
+        _LOGGER.debug(
+            "ADV mfr_data (%d bytes): %s",
+            len(mfr_data),
+            " ".join(f"{b:02X}[{i}]" for i, b in enumerate(mfr_data)))
+
         flame_byte = mfr_data[12]
 
         if flame_byte == ADV_FLAME_OFF:

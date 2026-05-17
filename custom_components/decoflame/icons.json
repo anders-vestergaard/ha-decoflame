@@ -1,0 +1,22 @@
+{
+  "entity": {
+    "switch": {
+      "fireplace": {
+        "default": "mdi:fireplace",
+        "state": {
+          "off": "mdi:fireplace-off"}}},
+    "select": {
+      "flame_level": {
+        "default": "mdi:fire"}},
+    "binary_sensor": {
+      "connected": {
+        "default": "mdi:bluetooth-connect",
+        "state": {
+          "off": "mdi:bluetooth-off"}}},
+    "sensor": {
+      "state": {
+        "default": "mdi:fireplace",
+        "state": {
+          "warming_up": "mdi:fire-alert",
+          "turning_off": "mdi:fireplace-off",
+          "off": "mdi:fireplace-off"}}}}}

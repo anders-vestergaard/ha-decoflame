@@ -40,7 +40,6 @@ from .const import (
     DOMAIN,
     ECHO_TO_STATE,
     FLAME_LEVEL_COMMANDS,
-    OFFLINE_TIMEOUT_SECONDS,
     PING_INTERVAL_SECONDS)
 
 _LOGGER = logging.getLogger(__name__)
@@ -76,7 +75,6 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._flame_level: str = "1"
         self._state: str = "off"
         self._last_advertisement: datetime | None = None
-        self._last_seen: datetime | None = None
         self._turn_off_cancel = None
         self._lock = asyncio.Lock()
 
@@ -98,13 +96,9 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     @property
     def connected(self) -> bool:
-        if self._last_advertisement is not None:
-            age = (datetime.now() - self._last_advertisement).total_seconds()
-            return age < ADV_TIMEOUT_SECONDS
-        if self._last_seen is None:
+        if self._last_advertisement is None:
             return False
-        age = (datetime.now() - self._last_seen).total_seconds()
-        return age < OFFLINE_TIMEOUT_SECONDS
+        return (datetime.now() - self._last_advertisement).total_seconds() < ADV_TIMEOUT_SECONDS
 
     # ------------------------------------------------------------------
     # Advertisement callback
@@ -162,9 +156,7 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "flame_level": self._flame_level,
                 "connected": self.connected}
 
-        reachable = await self._read_state()
-        if reachable:
-            self._last_seen = datetime.now()
+        await self._read_state()
         return {
             "is_on": self._is_on,
             "flame_level": self._flame_level,
@@ -240,7 +232,6 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                                 command.hex(),
                                 echo.hex())
                     await asyncio.sleep(BLE_DELAY_AFTER_WRITE_S)
-                self._last_seen = datetime.now()
             except (BleakError, asyncio.TimeoutError) as err:
                 raise UpdateFailed(f"BLE write failed: {err}") from err
 

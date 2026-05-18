@@ -135,6 +135,7 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 self._state = "warming_up"
                 self._is_on = True
             else:
+                self.async_update_listeners()
                 return
         elif flame_byte in ADV_FLAME_LEVEL:
             self._state = "on"

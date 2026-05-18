@@ -149,8 +149,7 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Read device state. Skip BLE connection if advertisement is recent."""
-        if (self._last_advertisement is not None and
-                (datetime.now() - self._last_advertisement).total_seconds() < ADV_TIMEOUT_SECONDS):
+        if self.connected:
             return {
                 "is_on": self._is_on,
                 "flame_level": self._flame_level,

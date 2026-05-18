@@ -35,11 +35,11 @@ from .const import (
     CMD_OFF,
     CMD_ON,
     CONF_ADDRESS,
-    FLAME_LEVEL_COMMANDS,
     CONF_READ_CHAR_UUID,
     CONF_WRITE_CHAR_UUID,
     DOMAIN,
     ECHO_TO_STATE,
+    FLAME_LEVEL_COMMANDS,
     OFFLINE_TIMEOUT_SECONDS,
     PING_INTERVAL_SECONDS)
 
@@ -131,8 +131,9 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._state = "turning_off"
             self._is_on = False
         elif flame_byte == ADV_FLAME_WARMING and status_byte == ADV_STATUS_OFF:
-            self._state = "off"
-            self._is_on = False
+            if self._state != "warming_up":
+                self._state = "off"
+                self._is_on = False
         elif flame_byte in (ADV_FLAME_WARMING, ADV_FLAME_WARMING2):
             if self._state in ("warming_up", "on"):
                 self._state = "warming_up"
@@ -192,6 +193,7 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                             if last_cmd in ECHO_TO_STATE:
                                 is_on, level = ECHO_TO_STATE[last_cmd]
                                 self._is_on = is_on
+                                self._state = "on" if is_on else "off"
                                 if level is not None:
                                     self._flame_level = level
                                 _LOGGER.debug(
@@ -225,7 +227,7 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     await client.write_gatt_char(
                         self.write_char,
                         command,
-                        response=False)
+                        response=True)
                     if self.read_char:
                         echo = bytes(await client.read_gatt_char(self.read_char))
                         last = echo[-2:] if len(echo) >= 2 else b""
@@ -298,6 +300,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     if await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
-        hass.data[DOMAIN].pop(entry.entry_id)
+        coordinator: DecoflameCoordinator = hass.data[DOMAIN].pop(entry.entry_id)
+        coordinator._cancel_turn_off_timeout()
         return True
     return False

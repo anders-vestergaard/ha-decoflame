@@ -115,8 +115,10 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self,
         service_info: BluetoothServiceInfoBleak,
         change: BluetoothChange) -> None:
+        self._last_advertisement = datetime.now()
         mfr_data = service_info.manufacturer_data.get(ADV_COMPANY_ID)
         if mfr_data is None or len(mfr_data) < 14:
+            self.async_update_listeners()
             return
 
         _LOGGER.debug(
@@ -145,7 +147,6 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._is_on = True
             self._flame_level = ADV_FLAME_LEVEL[flame_byte]
 
-        self._last_advertisement = datetime.now()
         self.async_update_listeners()
 
     # ------------------------------------------------------------------

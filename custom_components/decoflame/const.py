@@ -42,8 +42,7 @@ ECHO_TO_STATE: dict[bytes, tuple[bool, str | None]] = {
     bytes([0x00, 0x06]): (True, "ECO")}
 
 # Connectivity ping/timeout
-PING_INTERVAL_SECONDS   = 60        # 60 seconds — fallback when advertisements are missed
-OFFLINE_TIMEOUT_SECONDS = 60 * 60   # 60 minutes without response → offline
+PING_INTERVAL_SECONDS = 60  # fallback when advertisements are missed
 
 # Advertisement
 ADV_COMPANY_ID = 0x017F  # bytes: 7F 01

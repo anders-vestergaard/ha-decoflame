@@ -8,7 +8,6 @@ DECOFLAME_NAME_PREFIX = "decoflame"
 
 # Config entry keys
 CONF_ADDRESS = "address"
-CONF_SERVICE_UUID = "service_uuid"
 CONF_WRITE_CHAR_UUID = "write_char_uuid"
 CONF_READ_CHAR_UUID = "read_char_uuid"
 

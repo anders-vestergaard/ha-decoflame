@@ -19,7 +19,6 @@ from homeassistant.core import HomeAssistant
 from .const import (
     CONF_ADDRESS,
     CONF_READ_CHAR_UUID,
-    CONF_SERVICE_UUID,
     CONF_WRITE_CHAR_UUID,
     DECOFLAME_NAME_PREFIX,
     DEFAULT_NAME,
@@ -154,7 +153,6 @@ class DecoflameConfigFlow(ConfigFlow, domain=DOMAIN):
         data: dict[str, Any] = {
             CONF_ADDRESS: self._address,
             CONF_NAME: self._name,
-            CONF_SERVICE_UUID: service_uuid,
             CONF_WRITE_CHAR_UUID: write_uuid}
         if read_uuid:
             data[CONF_READ_CHAR_UUID] = read_uuid

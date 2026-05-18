@@ -224,7 +224,7 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     await client.write_gatt_char(
                         self.write_char,
                         command,
-                        response=True)
+                        response=False)
                     if self.read_char:
                         echo = bytes(await client.read_gatt_char(self.read_char))
                         last = echo[-2:] if len(echo) >= 2 else b""

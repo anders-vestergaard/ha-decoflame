@@ -60,7 +60,6 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             _LOGGER,
             name=entry.data.get(CONF_NAME, DOMAIN),
             update_interval=timedelta(seconds=PING_INTERVAL_SECONDS))
-        self.entry = entry
         self.address: str = entry.data[CONF_ADDRESS]
         self.write_char: str = entry.data[CONF_WRITE_CHAR_UUID]
         self.read_char: str | None = entry.data.get(CONF_READ_CHAR_UUID)

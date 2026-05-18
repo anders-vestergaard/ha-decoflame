@@ -67,7 +67,7 @@ async def _discover_gatt_characteristics(
 
             if service_uuid and write_uuid:
                 return service_uuid, write_uuid, read_uuid
-    except (BleakError, Exception) as err:
+    except Exception as err:
         _LOGGER.warning("GATT discovery failed for %s: %s", address, err)
     return None
 

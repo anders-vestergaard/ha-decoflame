@@ -168,13 +168,13 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def _get_ble_device(self):
         return async_ble_device_from_address(self.hass, self.address, connectable=True)
 
-    async def _read_state(self) -> bool:
-        """Connect, read state from echo char, disconnect. Returns True on success."""
+    async def _read_state(self) -> None:
+        """Connect, read state from echo char, disconnect."""
         async with self._lock:
             try:
                 ble_device = await self._get_ble_device()
                 if ble_device is None:
-                    return False
+                    return
                 client = await establish_connection(
                     BleakClient, ble_device, ble_device.address)
                 async with client:
@@ -193,9 +193,8 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                                     is_on,
                                     level,
                                     echo.hex())
-                return True
             except (BleakError, asyncio.TimeoutError):
-                return False
+                pass
 
     async def send_command(self, command: bytes) -> None:
         """Connect, write command, read-back verify, disconnect."""

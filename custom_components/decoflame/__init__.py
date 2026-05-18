@@ -19,6 +19,7 @@ from homeassistant.components.bluetooth import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME, Platform
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import (
@@ -266,7 +267,7 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         await self.send_command(CMD_OFF)
         self._is_on = False
         self._state = "turning_off"
-        self._turn_off_cancel = self.hass.async_call_later(420, self._on_turn_off_timeout)
+        self._turn_off_cancel = async_call_later(self.hass, 420, self._on_turn_off_timeout)
         self.async_update_listeners()
 
     async def async_set_flame_level(self, level: str) -> None:

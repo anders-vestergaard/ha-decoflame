@@ -9,7 +9,9 @@ Home Assistant custom integration for Decoflame bio-fireplaces via Bluetooth Low
 - **Binary sensor** — connection status (unavailable after 2 minutes without advertisement)
 - **Sensor** — fireplace state: `off`, `warming_up`, `on`, `turning_off`
 
-State is driven by BLE advertisements — no persistent connection required. Falls back to GATT read if advertisements are missed.
+> **Note:** If the fireplace is turned on from an external app or device, the `warming_up` state will not be shown — Home Assistant transitions directly to `on` when the first flame level advertisement arrives.
+
+State is driven by BLE advertisements — no persistent connection required. If no advertisement has been received in the last 2 minutes, the integration attempts a GATT read every 60 seconds to recover state.
 
 ## Requirements
 

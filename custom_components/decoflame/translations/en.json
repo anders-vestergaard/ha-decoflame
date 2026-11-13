@@ -1,0 +1,50 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Select Decoflame device",
+        "description": "Found {count} Decoflame device(s) nearby.",
+        "data": {
+          "address": "Device"}},
+      "manual": {
+        "title": "Manual setup",
+        "description": "No Decoflame devices found automatically. Enter the MAC address manually.",
+        "data": {
+          "address": "Bluetooth MAC address (XX:XX:XX:XX:XX:XX)",
+          "name": "Device name"}}},
+    "error": {
+      "cannot_connect": "Could not connect to the device. Check that the fireplace is on and within range.",
+      "invalid_mac": "Invalid MAC address. Use the format XX:XX:XX:XX:XX:XX."},
+    "abort": {
+      "already_configured": "Device is already configured.",
+      "not_supported": "This device is not supported."}},
+  "entity": {
+    "switch": {
+      "fireplace": {
+        "name": "Fireplace"}},
+    "select": {
+      "flame_level": {
+        "name": "Flame level",
+        "state": {
+          "ECO": "ECO",
+          "1": "1",
+          "2": "2",
+          "3": "3",
+          "4": "4",
+          "5": "5"}}},
+    "binary_sensor": {
+      "connected": {
+        "name": "Connected"}},
+    "sensor": {
+      "state": {
+        "name": "State",
+        "state": {
+          "off": "Off",
+          "on": "On",
+          "warming_up": "Warming up",
+          "turning_off": "Turning off"}}}},
+  "exceptions": {
+    "device_not_found": {
+      "message": "The fireplace cannot be reached over Bluetooth. Check that it has power and is within range of a Bluetooth adapter or proxy."},
+    "command_failed": {
+      "message": "Could not send the command to the fireplace. Try again in a moment. Details: {error}"}}}

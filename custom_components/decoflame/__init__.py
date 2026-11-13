@@ -8,7 +8,9 @@ from datetime import timedelta
 from typing import Any
 
 from bleak import BleakClient, BleakError
-from bleak_retry_connector import establish_connection
+from bleak.backends.device import BLEDevice
+from bleak.exc import BleakCharacteristicNotFoundError
+from bleak_retry_connector import BleakClientWithServiceCache, establish_connection
 
 from homeassistant.components.bluetooth import (
     BluetoothCallbackMatcher,
@@ -23,8 +25,9 @@ from homeassistant.components.bluetooth import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME, Platform
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.event import async_call_later
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import (
     ADV_COMPANY_ID,
@@ -291,42 +294,64 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 return
             self._mark_contact("GATT read")
 
+    async def _write_command(self, ble_device: BLEDevice, command: bytes) -> None:
+        """Connect with the services cache, write, read-back verify, disconnect."""
+        client = await establish_connection(
+            BleakClientWithServiceCache,
+            ble_device,
+            ble_device.address)
+        async with client:
+            await asyncio.sleep(BLE_DELAY_AFTER_CONNECT_S)
+            _LOGGER.debug("send_command %s to %s", command.hex(), ble_device.address)
+            try:
+                await client.write_gatt_char(
+                    self.write_char,
+                    command,
+                    response=True)
+                if self.read_char:
+                    echo = bytes(await client.read_gatt_char(self.read_char))
+                    last = echo[-2:] if len(echo) >= 2 else b""
+                    if last == command:
+                        _LOGGER.debug("Write verified: echo=%s", echo.hex())
+                    else:
+                        _LOGGER.warning(
+                            "Write mismatch — sent %s, echo=%s",
+                            command.hex(),
+                            echo.hex())
+            except BleakCharacteristicNotFoundError:
+                await client.clear_cache()
+                raise
+            await asyncio.sleep(BLE_DELAY_AFTER_WRITE_S)
+
     async def send_command(self, command: bytes) -> None:
-        """Connect, write command, read-back verify, disconnect."""
+        """Send a command; raise HomeAssistantError with a translated message on failure."""
         async with self._lock:
             ble_device = await self._get_ble_device()
             if ble_device is None:
-                raise UpdateFailed(f"BLE device {self.address} not found")
+                self._record_gatt_error("not seen by any connectable Bluetooth adapter or proxy")
+                raise HomeAssistantError(
+                    translation_domain=DOMAIN,
+                    translation_key="device_not_found")
             _LOGGER.debug(
                 "send_command %s via %s",
                 command.hex(),
                 getattr(ble_device, "source", "unknown"))
             try:
-                client = await establish_connection(
-                    BleakClient,
-                    ble_device,
-                    ble_device.address,
-                    use_services_cache=False)
-                async with client:
-                    await asyncio.sleep(BLE_DELAY_AFTER_CONNECT_S)
-                    _LOGGER.debug("send_command %s to %s", command.hex(), ble_device.address)
-                    await client.write_gatt_char(
-                        self.write_char,
-                        command,
-                        response=True)
-                    if self.read_char:
-                        echo = bytes(await client.read_gatt_char(self.read_char))
-                        last = echo[-2:] if len(echo) >= 2 else b""
-                        if last == command:
-                            _LOGGER.debug("Write verified: echo=%s", echo.hex())
-                        else:
-                            _LOGGER.warning(
-                                "Write mismatch — sent %s, echo=%s",
-                                command.hex(),
-                                echo.hex())
-                    await asyncio.sleep(BLE_DELAY_AFTER_WRITE_S)
+                try:
+                    await self._write_command(ble_device, command)
+                except BleakCharacteristicNotFoundError as err:
+                    _LOGGER.debug(
+                        "Characteristic not found (%s) — cleared services cache, retrying once",
+                        err)
+                    await self._write_command(ble_device, command)
             except (BleakError, asyncio.TimeoutError) as err:
-                raise UpdateFailed(f"BLE write failed: {err}") from err
+                self._record_gatt_error(f"{type(err).__name__}: {err}")
+                _LOGGER.debug("send_command %s failed: %s", command.hex(), err)
+                raise HomeAssistantError(
+                    translation_domain=DOMAIN,
+                    translation_key="command_failed",
+                    translation_placeholders={"error": str(err) or type(err).__name__}) from err
+            self._mark_contact("GATT write")
 
     @callback
     def _on_turn_off_timeout(self, _now) -> None:

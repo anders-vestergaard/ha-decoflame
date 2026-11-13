@@ -42,4 +42,9 @@
           "off": "Off",
           "on": "On",
           "warming_up": "Warming up",
-          "turning_off": "Turning off"}}}}}
+          "turning_off": "Turning off"}}}},
+  "exceptions": {
+    "device_not_found": {
+      "message": "The fireplace cannot be reached over Bluetooth. Check that it has power and is within range of a Bluetooth adapter or proxy."},
+    "command_failed": {
+      "message": "Could not send the command to the fireplace. Try again in a moment. Details: {error}"}}}

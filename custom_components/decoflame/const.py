@@ -41,8 +41,10 @@ ECHO_TO_STATE: dict[bytes, tuple[bool, str | None]] = {
     bytes([0x00, 0x05]): (True, "5"),
     bytes([0x00, 0x06]): (True, "ECO")}
 
-# Connectivity ping/timeout
-PING_INTERVAL_SECONDS = 60  # fallback when advertisements are missed
+# Connectivity
+PING_INTERVAL_SECONDS = 60       # periodic presence check; first GATT read backoff
+READ_BACKOFF_MAX_SECONDS = 600   # GATT read backoff doubles up to this while the device is gone
+READ_BACKOFF_SLACK_SECONDS = 5   # the update tick can fire slightly early
 
 # Advertisement
 ADV_COMPANY_ID = 0x017F  # bytes: 7F 01
@@ -59,5 +61,3 @@ ADV_FLAME_TURNING_OFF = 0x1E  # mfr_data[12]: turning off
 ADV_FLAME_WARMING     = 0x07  # mfr_data[12]: warmup phase 1 OR completely off (see ADV_STATUS_OFF)
 ADV_FLAME_WARMING2    = 0x10  # mfr_data[12]: warmup phase 2 (ramping up)
 ADV_STATUS_OFF        = 0x1C  # mfr_data[13]: completely off (paired with ADV_FLAME_WARMING)
-
-ADV_TIMEOUT_SECONDS = 120  # 2 minutes without advertisement → unavailable

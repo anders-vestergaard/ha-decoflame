@@ -1,6 +1,7 @@
 """Switch platform for Decoflame — tænd/sluk."""
 from __future__ import annotations
 
+from homeassistant.components.bluetooth import async_address_present
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -37,7 +38,9 @@ class DecoflameSwitch(CoordinatorEntity[DecoflameCoordinator], SwitchEntity):
 
     @property
     def available(self) -> bool:
-        return self.coordinator.connected
+        # Usable while Home Assistant can still connect, so a command can wake the fireplace
+        return self.coordinator.connected or async_address_present(
+            self.hass, self.coordinator.address, connectable=True)
 
     async def async_turn_on(self, **kwargs) -> None:
         await self.coordinator.async_turn_on()

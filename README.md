@@ -5,10 +5,13 @@ Home Assistant custom integration for Decoflame bio-fireplaces via Bluetooth Low
 ## Features
 
 - **Switch** — turn the fireplace on/off. Usable as long as Home Assistant can reach the fireplace, so you can always try a command; a failing command shows an error message
-- **Select** — set flame level (1–5 + ECO), unavailable while the fireplace is off, warming up or shutting down
+- **Select** — set flame level: ECO, 1–5. ECO is the lowest output, so it is listed first. Unavailable while the fireplace is off, warming up or shutting down
 - **Binary sensor** — connection status
-- **Sensor** — fireplace state: `off`, `warming_up`, `on`, `turning_off`
+- **Sensor: state** — `off`, `warming_up` (about 6½ minutes after turning on), `on`, `turning_off` (about 7 minutes after turning off)
+- **Sensor: fuel level** — in %
+- **Sensor: fuel consumption** — in L/h, from 0.4 L/h (ECO and level 1) to 0.9 L/h (level 5); 0 while warming up, turning off and off
 - **Diagnostics** — download a diagnostics file for troubleshooting
+- **Languages** — English and Danish
 
 ## How the connection works
 
@@ -79,6 +82,7 @@ Every minute the log shows the latest advertisement Home Assistant has received 
 
 - When the fireplace disappears, it takes 3–8 minutes before Home Assistant reports it offline.
 - ESPHome proxies have a limited number of connection slots. Commands use one briefly.
+- The fuel level may vary by 1 % between updates.
 
 ## Development
 
@@ -92,7 +96,6 @@ uv pip install --python .venv/bin/python -r requirements_test.txt
 
 ## Roadmap
 
-- Fuel sensor
 - Timer commands
 - Model information
 - Support for additional Decoflame models

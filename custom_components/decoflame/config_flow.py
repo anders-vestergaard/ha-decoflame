@@ -15,6 +15,10 @@ from homeassistant.components.bluetooth import (
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.selector import (
+    SelectOptionDict,
+    SelectSelector,
+    SelectSelectorConfig)
 
 from .const import (
     CONF_ADDRESS,
@@ -84,10 +88,11 @@ class DecoflameConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        discovered: dict[str, str] = {}
+        discovered: list[SelectOptionDict] = []
         for info in async_discovered_service_info(self.hass, connectable=True):
             if _is_decoflame_device(info):
-                discovered[info.address] = f"{info.name} ({info.address})"
+                discovered.append(SelectOptionDict(
+                    value=info.address, label=f"{info.name} ({info.address})"))
                 self._discovered_devices[info.address] = info
 
         if not discovered:
@@ -102,11 +107,13 @@ class DecoflameConfigFlow(ConfigFlow, domain=DOMAIN):
             self._name = info.name or DEFAULT_NAME
             return await self.async_step_connect()
 
-        choices = {**discovered, "manual": "Indtast MAC manuelt"}
+        choices = [*discovered, SelectOptionDict(value="manual", label="manual")]
         return self.async_show_form(
             step_id="user",
             data_schema=vol.Schema(
-                {vol.Required(CONF_ADDRESS): vol.In(choices)}),
+                {vol.Required(CONF_ADDRESS): SelectSelector(SelectSelectorConfig(
+                    options=choices,
+                    translation_key="address"))}),
             description_placeholders={"count": str(len(discovered))})
 
     async def async_step_manual(

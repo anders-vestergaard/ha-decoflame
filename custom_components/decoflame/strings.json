@@ -18,6 +18,10 @@
     "abort": {
       "already_configured": "Device is already configured.",
       "not_supported": "This device is not supported."}},
+  "selector": {
+    "address": {
+      "options": {
+        "manual": "Enter MAC address manually"}}},
   "entity": {
     "switch": {
       "fireplace": {

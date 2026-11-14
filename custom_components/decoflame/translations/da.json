@@ -18,6 +18,10 @@
     "abort": {
       "already_configured": "Enheden er allerede konfigureret.",
       "not_supported": "Denne enhed understøttes ikke."}},
+  "selector": {
+    "address": {
+      "options": {
+        "manual": "Indtast MAC-adresse manuelt"}}},
   "entity": {
     "switch": {
       "fireplace": {

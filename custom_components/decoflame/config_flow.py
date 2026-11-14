@@ -5,7 +5,7 @@ import logging
 from typing import Any
 
 import voluptuous as vol
-from bleak import BleakClient, BleakError
+from bleak import BleakClient
 from bleak_retry_connector import establish_connection
 
 from homeassistant.components.bluetooth import (
@@ -37,8 +37,8 @@ def _is_decoflame_device(info: BluetoothServiceInfoBleak) -> bool:
 
 async def _discover_gatt_characteristics(
     hass: HomeAssistant,
-    address: str) -> tuple[str, str, str | None] | None:
-    """Connect via proxy and discover service + write + read characteristic UUIDs."""
+    address: str) -> tuple[str, str | None] | None:
+    """Connect via proxy and discover write + read characteristic UUIDs."""
     try:
         ble_device = async_ble_device_from_address(hass, address, connectable=True)
         if ble_device is None:
@@ -49,7 +49,6 @@ async def _discover_gatt_characteristics(
         async with client:
             services = list(client.services)
 
-            service_uuid: str | None = None
             write_uuid: str | None = None
             read_uuid: str | None = None
 
@@ -58,19 +57,17 @@ async def _discover_gatt_characteristics(
                     props = set(char.properties)
                     if props == {"write"}:
                         write_uuid = str(char.uuid)
-                        service_uuid = str(service.uuid)
                     elif props == {"read", "write"}:
                         read_uuid = str(char.uuid)
 
             _LOGGER.info(
-                "GATT discovery %s — service=%s  write=%s  read=%s",
+                "GATT discovery %s — write=%s  read=%s",
                 address,
-                service_uuid,
                 write_uuid,
                 read_uuid)
 
-            if service_uuid and write_uuid:
-                return service_uuid, write_uuid, read_uuid
+            if write_uuid:
+                return write_uuid, read_uuid
     except Exception as err:
         _LOGGER.warning("GATT discovery failed for %s: %s", address, err)
     return None
@@ -155,7 +152,7 @@ class DecoflameConfigFlow(ConfigFlow, domain=DOMAIN):
                     vol.Optional(CONF_NAME, default=self._name): str}),
                 errors={"base": "cannot_connect"})
 
-        service_uuid, write_uuid, read_uuid = result
+        write_uuid, read_uuid = result
 
         data: dict[str, Any] = {
             CONF_ADDRESS: self._address,

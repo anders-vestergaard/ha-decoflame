@@ -22,7 +22,12 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
 from custom_components.decoflame import DecoflameCoordinator
-from custom_components.decoflame.const import CMD_ON, DOMAIN, TURN_ON_GRACE_SECONDS
+from custom_components.decoflame.const import (
+    CMD_ON,
+    DOMAIN,
+    FLAME_LEVEL_COMMANDS,
+    FLAME_LEVEL_GRACE_SECONDS,
+    TURN_ON_GRACE_SECONDS)
 
 from . import ADDRESS, make_client
 
@@ -404,6 +409,91 @@ async def test_off_report_right_after_turn_on_is_ignored(
     await hass.async_block_till_done()
     assert coordinator.state == "off"
     assert not coordinator.is_on
+
+
+
+async def _select_level_2_from_eco(
+    hass: HomeAssistant,
+    inject_advertisement,
+    mock_establish_connection: MagicMock) -> None:
+    """Burning at ECO, then flame level 2 selected in Home Assistant."""
+    inject_advertisement(_mfr_data(0x06, 0x60))
+    await hass.async_block_till_done()
+    assert _state(hass, "select") == "ECO"
+
+    mock_establish_connection.side_effect = None
+    mock_establish_connection.return_value = make_client(echo=FLAME_LEVEL_COMMANDS["2"])
+    await hass.services.async_call(
+        "select",
+        "select_option",
+        {"entity_id": _entity_id(hass, "select"), "option": "2"},
+        blocking=True)
+    assert _state(hass, "select") == "2"
+
+
+async def test_old_flame_level_right_after_change_is_ignored(
+    hass: HomeAssistant,
+    coordinator: DecoflameCoordinator,
+    inject_advertisement,
+    mock_establish_connection: MagicMock) -> None:
+    await _select_level_2_from_eco(hass, inject_advertisement, mock_establish_connection)
+
+    # The fireplace still reports the old level for a moment after the command
+    inject_advertisement(_mfr_data(0x06, 0x5F))
+    await hass.async_block_till_done()
+    assert coordinator.flame_level == "2"
+    assert _state(hass, "select") == "2"
+    assert coordinator.state == "on"
+
+
+async def test_other_flame_level_after_grace_window_is_shown(
+    hass: HomeAssistant,
+    coordinator: DecoflameCoordinator,
+    inject_advertisement,
+    mock_establish_connection: MagicMock) -> None:
+    await _select_level_2_from_eco(hass, inject_advertisement, mock_establish_connection)
+
+    coordinator._flame_level_set_at -= FLAME_LEVEL_GRACE_SECONDS
+    inject_advertisement(_mfr_data(0x06, 0x5F))
+    await hass.async_block_till_done()
+    assert coordinator.flame_level == "ECO"
+    assert _state(hass, "select") == "ECO"
+
+
+async def test_requested_flame_level_closes_grace_window(
+    hass: HomeAssistant,
+    coordinator: DecoflameCoordinator,
+    inject_advertisement,
+    mock_establish_connection: MagicMock) -> None:
+    await _select_level_2_from_eco(hass, inject_advertisement, mock_establish_connection)
+
+    inject_advertisement(_mfr_data(0x02, 0x60))
+    await hass.async_block_till_done()
+    assert _state(hass, "select") == "2"
+
+    # Changed from the app right after: followed at once, within the 5 s
+    inject_advertisement(_mfr_data(0x06, 0x60))
+    await hass.async_block_till_done()
+    assert coordinator.flame_level == "ECO"
+    assert _state(hass, "select") == "ECO"
+
+
+@pytest.mark.parametrize(
+    ("flame", "state"),
+    [(0x1E, "turning_off"), (0x07, "off"), (0x10, "warming_up")])
+async def test_state_reports_within_flame_level_grace_window(
+    hass: HomeAssistant,
+    coordinator: DecoflameCoordinator,
+    inject_advertisement,
+    mock_establish_connection: MagicMock,
+    flame: int,
+    state: str) -> None:
+    await _select_level_2_from_eco(hass, inject_advertisement, mock_establish_connection)
+
+    inject_advertisement(_mfr_data(flame, 0x60))
+    await hass.async_block_till_done()
+    assert coordinator.state == state
+    assert _sensor_state(hass, "state") == state
 
 
 def test_flame_levels_ordered_by_output() -> None:

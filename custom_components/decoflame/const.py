@@ -76,3 +76,8 @@ ADV_FLAME_TURNING_OFF = 0x1E  # turning off / cooling down; follows a turn-off, 
 # The fireplace can keep reporting off for a second or two after a turn-on
 # command; such reports are ignored this long after a successful turn-on.
 TURN_ON_GRACE_SECONDS = 5
+
+# The fireplace can keep reporting the previous flame level for a moment after
+# a flame level command; such reports are ignored this long after a successful
+# flame level command, until the fireplace reports the requested level.
+FLAME_LEVEL_GRACE_SECONDS = 5

@@ -47,6 +47,7 @@ from .const import (
     DOMAIN,
     ECHO_TO_STATE,
     FLAME_LEVEL_COMMANDS,
+    FLAME_LEVEL_GRACE_SECONDS,
     PING_INTERVAL_SECONDS,
     READ_BACKOFF_MAX_SECONDS,
     READ_BACKOFF_SLACK_SECONDS,
@@ -97,6 +98,8 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._next_read_at: float = 0.0
         self._turn_off_cancel = None
         self._turned_on_at: float | None = None
+        self._requested_flame_level: str | None = None
+        self._flame_level_set_at: float | None = None
         self._lock = asyncio.Lock()
 
     # ------------------------------------------------------------------
@@ -217,7 +220,11 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         elif flame_byte in ADV_FLAME_LEVEL:
             self._state = "on"
             self._is_on = True
-            self._flame_level = ADV_FLAME_LEVEL[flame_byte]
+            level = ADV_FLAME_LEVEL[flame_byte]
+            if level == self._requested_flame_level:
+                self._flame_level_set_at = None
+            if not self._in_flame_level_grace():
+                self._flame_level = level
 
         self.async_update_listeners()
 
@@ -225,6 +232,11 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """True shortly after a successful turn-on, while the device may still report off."""
         return (self._turned_on_at is not None
                 and time.monotonic() - self._turned_on_at < TURN_ON_GRACE_SECONDS)
+
+    def _in_flame_level_grace(self) -> bool:
+        """True shortly after a flame level command, while the device may still report the old level."""
+        return (self._flame_level_set_at is not None
+                and time.monotonic() - self._flame_level_set_at < FLAME_LEVEL_GRACE_SECONDS)
 
     # ------------------------------------------------------------------
     # DataUpdateCoordinator hook — called on schedule (ping)
@@ -405,6 +417,8 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def async_set_flame_level(self, level: str) -> None:
         self._cancel_turn_off_timeout()
         await self.send_command(FLAME_LEVEL_COMMANDS[level])
+        self._requested_flame_level = level
+        self._flame_level_set_at = time.monotonic()
         self._flame_level = level
         self.async_update_listeners()
 

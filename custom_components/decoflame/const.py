@@ -67,7 +67,12 @@ ADV_FLAME_LEVEL: dict[int, str] = {
     0x05: "5",
     0x06: "ECO"}
 
-ADV_FLAME_TURNING_OFF = 0x1E  # mfr_data[12]: turning off
-ADV_FLAME_WARMING     = 0x07  # mfr_data[12]: warmup phase 1 OR completely off (see ADV_STATUS_OFF)
-ADV_FLAME_WARMING2    = 0x10  # mfr_data[12]: warmup phase 2 (ramping up)
-ADV_STATUS_OFF        = 0x1C  # mfr_data[13]: completely off (paired with ADV_FLAME_WARMING)
+# mfr_data[12] alone gives the fireplace state (confirmed against the app):
+# 0x01–0x06 burning at a flame level (above), plus the values below.
+ADV_FLAME_OFF         = 0x07  # off / ready to light
+ADV_FLAME_WARMING_UP  = 0x10  # warming up; follows a turn-on within a second, lasts ~6.5 min
+ADV_FLAME_TURNING_OFF = 0x1E  # turning off / cooling down; follows a turn-off, lasts at least 2 min
+
+# The fireplace can keep reporting off for a second or two after a turn-on
+# command; such reports are ignored this long after a successful turn-on.
+TURN_ON_GRACE_SECONDS = 5

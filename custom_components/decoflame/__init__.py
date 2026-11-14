@@ -34,10 +34,9 @@ from .const import (
     ADV_FLAME_LEVEL,
     ADV_FUEL_LEVEL_INDEX,
     ADV_FUEL_RATE_INDEX,
+    ADV_FLAME_OFF,
     ADV_FLAME_TURNING_OFF,
-    ADV_FLAME_WARMING,
-    ADV_FLAME_WARMING2,
-    ADV_STATUS_OFF,
+    ADV_FLAME_WARMING_UP,
     BLE_DELAY_AFTER_CONNECT_S,
     BLE_DELAY_AFTER_WRITE_S,
     CMD_OFF,
@@ -50,7 +49,8 @@ from .const import (
     FLAME_LEVEL_COMMANDS,
     PING_INTERVAL_SECONDS,
     READ_BACKOFF_MAX_SECONDS,
-    READ_BACKOFF_SLACK_SECONDS)
+    READ_BACKOFF_SLACK_SECONDS,
+    TURN_ON_GRACE_SECONDS)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -96,6 +96,7 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._read_backoff: float = PING_INTERVAL_SECONDS
         self._next_read_at: float = 0.0
         self._turn_off_cancel = None
+        self._turned_on_at: float | None = None
         self._lock = asyncio.Lock()
 
     # ------------------------------------------------------------------
@@ -202,28 +203,28 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._fuel_rate = mfr_data[ADV_FUEL_RATE_INDEX] / 10
 
         flame_byte = mfr_data[12]
-        status_byte = mfr_data[13]
 
         if flame_byte == ADV_FLAME_TURNING_OFF:
             self._state = "turning_off"
             self._is_on = False
-        elif flame_byte == ADV_FLAME_WARMING and status_byte == ADV_STATUS_OFF:
-            if self._state != "warming_up":
+        elif flame_byte == ADV_FLAME_WARMING_UP:
+            self._state = "warming_up"
+            self._is_on = True
+        elif flame_byte == ADV_FLAME_OFF:
+            if not (self._state == "warming_up" and self._in_turn_on_grace()):
                 self._state = "off"
                 self._is_on = False
-        elif flame_byte in (ADV_FLAME_WARMING, ADV_FLAME_WARMING2):
-            if self._state in ("warming_up", "on"):
-                self._state = "warming_up"
-                self._is_on = True
-            else:
-                self.async_update_listeners()
-                return
         elif flame_byte in ADV_FLAME_LEVEL:
             self._state = "on"
             self._is_on = True
             self._flame_level = ADV_FLAME_LEVEL[flame_byte]
 
         self.async_update_listeners()
+
+    def _in_turn_on_grace(self) -> bool:
+        """True shortly after a successful turn-on, while the device may still report off."""
+        return (self._turned_on_at is not None
+                and time.monotonic() - self._turned_on_at < TURN_ON_GRACE_SECONDS)
 
     # ------------------------------------------------------------------
     # DataUpdateCoordinator hook — called on schedule (ping)
@@ -388,6 +389,7 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def async_turn_on(self) -> None:
         self._cancel_turn_off_timeout()
         await self.send_command(CMD_ON)
+        self._turned_on_at = time.monotonic()
         self._is_on = True
         self._state = "warming_up"
         self.async_update_listeners()

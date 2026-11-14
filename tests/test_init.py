@@ -22,7 +22,7 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
 from custom_components.decoflame import DecoflameCoordinator
-from custom_components.decoflame.const import CMD_ON, DOMAIN
+from custom_components.decoflame.const import CMD_ON, DOMAIN, TURN_ON_GRACE_SECONDS
 
 from . import ADDRESS, make_client
 
@@ -324,6 +324,86 @@ async def test_fuel_rate_unknown_for_short_advertisement(
 
     assert coordinator.fuel_rate is None
     assert _sensor_state(hass, "fuel_rate") == "unknown"
+
+
+def _mfr_data(flame: int, fuel: int = 0x60) -> bytes:
+    """An advertisement with the given flame byte (12) and fuel level (13)."""
+    return bytes(12) + bytes([flame, fuel, 0x00])
+
+
+@pytest.mark.parametrize("fuel", [0x00, 0x1C, 0x60])
+async def test_turning_off_then_off_regardless_of_fuel_level(
+    hass: HomeAssistant,
+    coordinator: DecoflameCoordinator,
+    inject_advertisement,
+    fuel: int) -> None:
+    inject_advertisement(_mfr_data(0x03, fuel))
+    await hass.async_block_till_done()
+    assert coordinator.state == "on"
+    assert _state(hass, "select") == "3"
+
+    inject_advertisement(_mfr_data(0x1E, fuel))
+    await hass.async_block_till_done()
+    assert coordinator.state == "turning_off"
+    assert not coordinator.is_on
+
+    inject_advertisement(_mfr_data(0x07, fuel))
+    await hass.async_block_till_done()
+    assert coordinator.state == "off"
+    assert not coordinator.is_on
+    assert _sensor_state(hass, "state") == "off"
+    assert _state(hass, "switch") == STATE_OFF
+
+
+async def test_warming_up_from_off(
+    hass: HomeAssistant,
+    coordinator: DecoflameCoordinator,
+    inject_advertisement) -> None:
+    inject_advertisement(_mfr_data(0x07))
+    await hass.async_block_till_done()
+    assert coordinator.state == "off"
+
+    # Turned on from the app: the fireplace goes straight to warming up
+    inject_advertisement(_mfr_data(0x10))
+    await hass.async_block_till_done()
+    assert coordinator.state == "warming_up"
+    assert coordinator.is_on
+    assert _sensor_state(hass, "state") == "warming_up"
+    assert _state(hass, "switch") == STATE_ON
+
+    inject_advertisement(_mfr_data(0x06))
+    await hass.async_block_till_done()
+    assert coordinator.state == "on"
+    assert _state(hass, "select") == "ECO"
+
+
+async def test_off_report_right_after_turn_on_is_ignored(
+    hass: HomeAssistant,
+    coordinator: DecoflameCoordinator,
+    inject_advertisement,
+    mock_establish_connection: MagicMock) -> None:
+    inject_advertisement(_mfr_data(0x07, 0x60))
+    await hass.async_block_till_done()
+    assert coordinator.state == "off"
+
+    mock_establish_connection.side_effect = None
+    mock_establish_connection.return_value = make_client(echo=CMD_ON)
+    await coordinator.async_turn_on()
+    assert coordinator.state == "warming_up"
+
+    # The fireplace still reports off for a moment after the command
+    inject_advertisement(_mfr_data(0x07, 0x5F))
+    await hass.async_block_till_done()
+    assert coordinator.state == "warming_up"
+    assert coordinator.is_on
+    assert _sensor_state(hass, "state") == "warming_up"
+
+    # After the grace window an off report counts again
+    coordinator._turned_on_at -= TURN_ON_GRACE_SECONDS
+    inject_advertisement(_mfr_data(0x07, 0x60))
+    await hass.async_block_till_done()
+    assert coordinator.state == "off"
+    assert not coordinator.is_on
 
 
 def test_flame_levels_ordered_by_output() -> None:

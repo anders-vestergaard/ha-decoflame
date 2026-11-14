@@ -77,7 +77,6 @@ Every minute the log shows the latest advertisement Home Assistant has received 
 
 ## Known limitations
 
-- If the fireplace is turned on from an external app or device, the `warming_up` state will not be shown — Home Assistant transitions directly to `on` when the first flame level advertisement arrives.
 - When the fireplace disappears, it takes 3–8 minutes before Home Assistant reports it offline.
 - ESPHome proxies have a limited number of connection slots. Commands use one briefly.
 

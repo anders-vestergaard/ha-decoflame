@@ -42,7 +42,11 @@
           "off": "Slukket",
           "on": "Tændt",
           "warming_up": "Varmer op",
-          "turning_off": "Slukker"}}}},
+          "turning_off": "Slukker"}},
+      "fuel_level": {
+        "name": "Brændstofniveau"},
+      "fuel_rate": {
+        "name": "Brændstofforbrug"}}},
   "exceptions": {
     "device_not_found": {
       "message": "Pejsen kan ikke nås over Bluetooth. Kontrollér at den har strøm og er inden for rækkevidde af en Bluetooth-adapter eller -proxy."},

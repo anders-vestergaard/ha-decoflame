@@ -15,14 +15,16 @@ CONF_READ_CHAR_UUID = "read_char_uuid"
 CMD_ON:  bytes = bytes([0x00, 0x10])
 CMD_OFF: bytes = bytes([0x00, 0x20])
 
-# Flame levels 1–5 map to 0x01–0x05; ECO is the highest setting (0x06)
+# Flame levels 1–5 map to 0x01–0x05. ECO is the lowest output (0.4 L/h, like
+# level 1) even though the fireplace and the app number it 6 (0x06).
+# Ordered by output, so the select lists ECO first.
 FLAME_LEVEL_COMMANDS: dict[str, bytes] = {
+    "ECO": bytes([0x00, 0x06]),
     "1":   bytes([0x00, 0x01]),
     "2":   bytes([0x00, 0x02]),
     "3":   bytes([0x00, 0x03]),
     "4":   bytes([0x00, 0x04]),
-    "5":   bytes([0x00, 0x05]),
-    "ECO": bytes([0x00, 0x06])}
+    "5":   bytes([0x00, 0x05])}
 
 FLAME_LEVELS = list(FLAME_LEVEL_COMMANDS.keys())
 
@@ -48,6 +50,14 @@ READ_BACKOFF_SLACK_SECONDS = 5   # the update tick can fire slightly early
 
 # Advertisement
 ADV_COMPANY_ID = 0x017F  # bytes: 7F 01
+
+# mfr_data[13]: fuel level in percent (confirmed against the app: 96 % = 0x60).
+# It jitters by one between adverts (0x5F/0x60).
+ADV_FUEL_LEVEL_INDEX = 13
+# mfr_data[14]: current fuel consumption in tenths of a litre per hour
+# (confirmed against the app: ECO 0x04 = 0.4 L/h, level 5 0x09 = 0.9 L/h);
+# 0 while warming up and when off.
+ADV_FUEL_RATE_INDEX = 14
 
 ADV_FLAME_LEVEL: dict[int, str] = {
     0x01: "1",

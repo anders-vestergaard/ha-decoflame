@@ -32,6 +32,10 @@ UNIQUE_ID_SUFFIXES = {
     "binary_sensor": "connected",
     "sensor": "state"}
 
+# A real advertisement from the fireplace at flame level 5 with a full tank:
+# fuel 96 % (0x60), consumption 0.9 L/h (0x09)
+MFR_DATA_LEVEL_5_FULL = bytes.fromhex("af059cca a4a5a6a7 a8a9aaab 05 60 09 00 0000f0".replace(" ", ""))
+
 
 def _entity_id(hass: HomeAssistant, platform: str) -> str:
     entity_id = er.async_get(hass).async_get_entity_id(
@@ -289,3 +293,39 @@ def test_error_messages_are_translated(path: str) -> None:
     exceptions = json.loads((integration_dir / path).read_text(encoding="utf-8"))["exceptions"]
     assert exceptions["device_not_found"]["message"]
     assert "{error}" in exceptions["command_failed"]["message"]
+
+
+def _sensor_state(hass: HomeAssistant, suffix: str) -> str:
+    entity_id = er.async_get(hass).async_get_entity_id("sensor", DOMAIN, f"{ADDRESS}_{suffix}")
+    assert entity_id is not None
+    return hass.states.get(entity_id).state
+
+
+async def test_fuel_level_and_rate_from_advertisement(
+    hass: HomeAssistant,
+    coordinator: DecoflameCoordinator,
+    inject_advertisement) -> None:
+    inject_advertisement(MFR_DATA_LEVEL_5_FULL)
+    await hass.async_block_till_done()
+
+    assert coordinator.fuel_level == 96
+    assert coordinator.fuel_rate == 0.9
+    assert _sensor_state(hass, "fuel_level") == "96"
+    assert float(_sensor_state(hass, "fuel_rate")) == 0.9
+    assert _state(hass, "select") == "5"
+
+
+async def test_fuel_rate_unknown_for_short_advertisement(
+    hass: HomeAssistant,
+    coordinator: DecoflameCoordinator,
+    inject_advertisement) -> None:
+    inject_advertisement()
+    await hass.async_block_till_done()
+
+    assert coordinator.fuel_rate is None
+    assert _sensor_state(hass, "fuel_rate") == "unknown"
+
+
+def test_flame_levels_ordered_by_output() -> None:
+    from custom_components.decoflame.const import FLAME_LEVELS
+    assert FLAME_LEVELS == ["ECO", "1", "2", "3", "4", "5"]

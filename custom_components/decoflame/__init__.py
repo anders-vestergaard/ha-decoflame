@@ -32,6 +32,8 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from .const import (
     ADV_COMPANY_ID,
     ADV_FLAME_LEVEL,
+    ADV_FUEL_LEVEL_INDEX,
+    ADV_FUEL_RATE_INDEX,
     ADV_FLAME_TURNING_OFF,
     ADV_FLAME_WARMING,
     ADV_FLAME_WARMING2,
@@ -85,6 +87,8 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._is_on: bool = False
         self._flame_level: str = "1"
         self._state: str = "off"
+        self._fuel_level: int | None = None
+        self._fuel_rate: float | None = None
         self._connected: bool = False
         self._last_service_info: BluetoothServiceInfoBleak | None = None
         self._last_gatt_error: str | None = None
@@ -109,6 +113,16 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     @property
     def state(self) -> str:
         return self._state
+
+    @property
+    def fuel_level(self) -> int | None:
+        """Fuel left in the tank, in percent, from the advertisement."""
+        return self._fuel_level
+
+    @property
+    def fuel_rate(self) -> float | None:
+        """Current fuel consumption in L/h, from the advertisement."""
+        return self._fuel_rate
 
     @property
     def connected(self) -> bool:
@@ -182,6 +196,10 @@ class DecoflameCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "ADV mfr_data (%d bytes): %s",
             len(mfr_data),
             _format_mfr_data(mfr_data))
+
+        self._fuel_level = mfr_data[ADV_FUEL_LEVEL_INDEX]
+        if len(mfr_data) > ADV_FUEL_RATE_INDEX:
+            self._fuel_rate = mfr_data[ADV_FUEL_RATE_INDEX] / 10
 
         flame_byte = mfr_data[12]
         status_byte = mfr_data[13]

@@ -19,4 +19,8 @@
         "state": {
           "warming_up": "mdi:fire-alert",
           "turning_off": "mdi:fireplace-off",
-          "off": "mdi:fireplace-off"}}}}}
+          "off": "mdi:fireplace-off"}},
+      "fuel_level": {
+        "default": "mdi:gauge"},
+      "fuel_rate": {
+        "default": "mdi:water-outline"}}}}

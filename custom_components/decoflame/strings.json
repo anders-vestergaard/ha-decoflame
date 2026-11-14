@@ -42,7 +42,11 @@
           "off": "Off",
           "on": "On",
           "warming_up": "Warming up",
-          "turning_off": "Turning off"}}}},
+          "turning_off": "Turning off"}},
+      "fuel_level": {
+        "name": "Fuel level"},
+      "fuel_rate": {
+        "name": "Fuel consumption"}}},
   "exceptions": {
     "device_not_found": {
       "message": "The fireplace cannot be reached over Bluetooth. Check that it has power and is within range of a Bluetooth adapter or proxy."},

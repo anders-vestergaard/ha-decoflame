@@ -57,6 +57,8 @@ async def async_get_config_entry_diagnostics(
          "state": coordinator.state,
          "is_on": coordinator.is_on,
          "flame_level": coordinator.flame_level,
+         "fuel_level": coordinator.fuel_level,
+         "fuel_rate": coordinator.fuel_rate,
          "advertisement": advertisement,
          "gatt": gatt},
         TO_REDACT)

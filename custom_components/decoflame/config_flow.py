@@ -128,7 +128,7 @@ class DecoflameConfigFlow(ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="manual",
             data_schema=vol.Schema({
-                vol.Required(CONF_ADDRESS, default="0C:43:14:9C:05:AF"): str,
+                vol.Required(CONF_ADDRESS): str,
                 vol.Optional(CONF_NAME, default=DEFAULT_NAME): str}),
             errors=errors)
 
